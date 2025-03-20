@@ -1,13 +1,13 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "lightbox2/dist/css/lightbox.min.css";
-import DataTable from '@/matt/DataTable';
-import Button from '@/matt/Button';
-import SeeMoreText from '@/matt/SeeMoreText';
+import DataTable from "@/matt/DataTable";
+import Button from "@/matt/Button";
+import SeeMoreText from "@/matt/SeeMoreText";
 
 interface Service {
   id: number;
@@ -26,18 +26,20 @@ const ServiceTable = () => {
 
   const fetchServices = async () => {
     try {
-      const res = await fetch('/api/services');
+      const res = await fetch("/api/services");
       if (!res.ok) throw new Error("Failed to fetch services");
       const data = await res.json();
 
-      const updatedServices = await Promise.all(data.map(async (service: Service) => {
-        if (service.image) {
-          const imageRes = await fetch(service.image);
-          const imageBlob = await imageRes.blob();
-          service.image = URL.createObjectURL(imageBlob);
-        }
-        return service;
-      }));
+      const updatedServices = await Promise.all(
+        data.map(async (service: Service) => {
+          if (service.image) {
+            const imageRes = await fetch(service.image);
+            const imageBlob = await imageRes.blob();
+            service.image = URL.createObjectURL(imageBlob);
+          }
+          return service;
+        })
+      );
 
       setServices(updatedServices);
     } catch {
@@ -48,19 +50,33 @@ const ServiceTable = () => {
   useEffect(() => {
     fetchServices();
   }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
-    const method = isEditing ? 'PUT' : 'POST';
-    const id = isEditing ? formData.get('id') : null;
+
+    // Convert formData to a plain object to easily log and inspect
+    const formObject = Object.fromEntries(formData.entries());
+
+    // Log the formData and the plain object
+    console.log("FormData entries:", formData);
+    console.log("Form Object:", formObject);
+
+    const method = isEditing ? "PUT" : "POST";
+    const id = isEditing ? formData.get("id") : null;
 
     try {
-      const res = await fetch(`/api/services${id ? `?id=${id}` : ''}`, {
+      // Log the method and the final data being sent
+      console.log("Sending data:", {
         method,
-        body: formData,
+        body: formObject, // This will be the data sent
+      });
+
+      const res = await fetch(`/api/services${id ? `?id=${id}` : ""}`, {
+        method,
+        body: JSON.stringify(formObject), // Send the plain object as JSON
+        headers: { "Content-Type": "application/json" }, // Set the content-type to JSON
       });
 
       if (!res.ok) throw new Error("Failed to save service");
@@ -69,7 +85,11 @@ const ServiceTable = () => {
       setIsEditing(false);
       setShowModal(false);
       form.reset();
-      toast.success(isEditing ? "Service updated successfully!" : "Service added successfully!");
+      toast.success(
+        isEditing
+          ? "Service updated successfully!"
+          : "Service added successfully!"
+      );
     } catch {
       toast.error("Error saving service. Please try again later.");
     } finally {
@@ -85,7 +105,7 @@ const ServiceTable = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`/api/services?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/services?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete service");
 
       fetchServices();
@@ -111,20 +131,20 @@ const ServiceTable = () => {
   }, []);
 
   const columns = [
-    { key: 'title', header: 'Service' },
+    { key: "title", header: "Service" },
     {
       key: "description",
       header: "Description",
-      renderCell: (row: Service) => <SeeMoreText text={row.description} maxLength={100} />,
+      renderCell: (row: Service) => (
+        <SeeMoreText text={row.description} maxLength={100} />
+      ),
     },
     {
-      key: 'image', header: 'Image', renderCell: (row: Service) => (
+      key: "image",
+      header: "Image",
+      renderCell: (row: Service) => (
         <div className="mx-auto">
-          <a
-            data-lightbox="gallery"
-            data-title={row.title}
-            href={row.image}
-          >
+          <a data-lightbox="gallery" data-title={row.title} href={row.image}>
             <img
               src={row.image}
               alt={row.title}
@@ -135,7 +155,9 @@ const ServiceTable = () => {
       ),
     },
     {
-      key: 'actions', header: 'Actions', renderCell: (row: Service) => (
+      key: "actions",
+      header: "Actions",
+      renderCell: (row: Service) => (
         <>
           <Button onClick={() => handleEdit(row)} color="blue">
             Edit
@@ -152,33 +174,40 @@ const ServiceTable = () => {
     <div className="flex flex-col items-center justify-center py-6 w-full">
       <ToastContainer autoClose={1500} />
 
-      <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800">Our Services</h1>
+      <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800">
+        Our Services
+      </h1>
 
       <div className="w-full max-w-5xl mx-auto sm:mx-4 md:mx-auto flex justify-end mb-6">
         <button
-          onClick={() => { setIsEditing(false); setShowModal(true); }}
+          onClick={() => {
+            setIsEditing(false);
+            setShowModal(true);
+          }}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Add New Service
         </button>
       </div>
 
-      <div className="w-full max-w-5xl mx-auto overflow-x-auto">
+      <div className="w-full mx-auto ">
         <DataTable columns={columns} data={services} />
       </div>
 
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
-            <h2 className="mb-4 text-lg font-bold text-gray-800">{isEditing ? 'Edit Service' : 'Add Service'}</h2>
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
+              {isEditing ? "Edit Service" : "Add Service"}
+            </h2>
             <form onSubmit={handleSubmit}>
-              <input type="hidden" name="id" value={formData?.id || ''} />
+              <input type="hidden" name="id" value={formData?.id || ""} />
 
               <input
                 type="text"
                 name="title"
                 placeholder="Title"
-                defaultValue={formData?.title || ''}
+                defaultValue={formData?.title || ""}
                 required
                 className="w-full mb-2 border rounded p-2 focus:ring focus:ring-blue-300"
               />
@@ -187,7 +216,7 @@ const ServiceTable = () => {
                 type="text"
                 name="description"
                 placeholder="Description"
-                defaultValue={formData?.description || ''}
+                defaultValue={formData?.description || ""}
                 required
                 className="w-full mb-2 border rounded p-2 focus:ring focus:ring-blue-300"
               />
@@ -213,8 +242,10 @@ const ServiceTable = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center"
                   disabled={isSaving}
                 >
-                  {isSaving && <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>}
-                  {isEditing ? 'Update' : 'Add'} Service
+                  {isSaving && (
+                    <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>
+                  )}
+                  {isEditing ? "Update" : "Add"} Service
                 </button>
               </div>
             </form>
@@ -225,7 +256,10 @@ const ServiceTable = () => {
       {modalImage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="relative">
-            <button onClick={closeModal} className="absolute top-0 right-1 p-3 text-white text-2xl focus:outline-none">
+            <button
+              onClick={closeModal}
+              className="absolute top-0 right-1 p-3 text-white text-2xl focus:outline-none"
+            >
               ×
             </button>
             <Image
@@ -240,7 +274,6 @@ const ServiceTable = () => {
       )}
     </div>
   );
-
 };
 
 export default ServiceTable;

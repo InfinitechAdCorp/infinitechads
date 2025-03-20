@@ -21,22 +21,27 @@ export async function POST(request: NextRequest) {
   const feedback = data.get('feedback') as string;
   const imageFile = data.get('image') as File | null;
 
+  // Ensure all fields are present
   if (!name || !position || !company || !feedback || !imageFile) {
     return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
   }
 
   try {
+    // Upload image to Vercel Blob
     const blob = await put(`uploads/${imageFile.name}`, await imageFile.arrayBuffer(), {
       access: 'public',
       contentType: imageFile.type,
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
+    // Create the testimonial record in the database
     const newTestimonial = await prisma.testimonial.create({
       data: { name, position, company, feedback, imageUrl: blob.url },
     });
+
     return NextResponse.json({ message: 'Testimonial created successfully!', newTestimonial }, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error(error);  // Logging any errors for debugging
     return NextResponse.json({ error: 'Failed to create testimonial' }, { status: 500 });
   }
 }

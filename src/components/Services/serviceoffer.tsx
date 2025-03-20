@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import { Skeleton } from "@heroui/skeleton";
 import { Card } from "@heroui/card";
 
@@ -19,33 +19,48 @@ interface ServicesOfferProps {
   showAllServices: boolean;
 }
 
-const ServicesOffer: React.FC<ServicesOfferProps> = ({ showSeeMoreButton, showAllServices }) => {
+const ServicesOffer: React.FC<ServicesOfferProps> = ({
+  showSeeMoreButton,
+  showAllServices,
+}) => {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await fetch('/api/services');
-        if (!res.ok) throw new Error('Failed to fetch services');
+        const res = await fetch("/api/services");
+        if (!res.ok) throw new Error("Failed to fetch services");
         const data = await res.json();
 
         const servicesWithImages = await Promise.all(
-          data.map(async (service: Service) => {
-            if (service.image.startsWith('data:image')) {
-              return service;
+          data.map(async (service: any) => {
+            if (service.image.startsWith("data:image")) {
+              return service; // No image URL to fetch, so return as is
             }
-            const imageResponse = await fetch(service.image);
-            const imageBlob = await imageResponse.blob();
-            const imageUrl = URL.createObjectURL(imageBlob);
-            return { ...service, image: imageUrl };
+
+            try {
+              const imageResponse = await fetch(service.image);
+              if (!imageResponse.ok) {
+                throw new Error(`Failed to fetch image for ${service.title}`);
+              }
+              const imageBlob = await imageResponse.blob();
+              const imageUrl = URL.createObjectURL(imageBlob);
+              return { ...service, image: imageUrl };
+            } catch (error) {
+              console.error(
+                `Error fetching image for ${service.title}:`,
+                error
+              );
+              return service; // Return the service without the image
+            }
           })
         );
 
         setServices(servicesWithImages);
         setLoading(false);
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching services:", error);
         setLoading(false);
       }
     };
@@ -90,7 +105,11 @@ const ServicesOffer: React.FC<ServicesOfferProps> = ({ showSeeMoreButton, showAl
           </a>
         </div>
       )}
-      <div className="offer flex justify-center" data-aos="zoom-in-up" data-aos-duration="1000">
+      <div
+        className="offer flex justify-center"
+        data-aos="zoom-in-up"
+        data-aos-duration="1000"
+      >
         {loading ? (
           <>
             {Array.from({ length: 3 }).map((_, index) => (
@@ -125,9 +144,19 @@ const ServicesOffer: React.FC<ServicesOfferProps> = ({ showSeeMoreButton, showAl
                 data-aos="fade-up"
                 data-aos-duration="1000"
               >
-                <Image src={service.image} alt={service.title} className="mx-auto mb-4" width={200} height={250} />
-                <h2 className="text-lg sm:text-xl font-bold mb-2">{service.title}</h2>
-                <p className="offer-desc text-xs sm:text-sm">{service.description}</p>
+                <Image
+                  src={service.image}
+                  alt={service.title}
+                  className="mx-auto mb-4"
+                  width={200}
+                  height={250}
+                />
+                <h2 className="text-lg sm:text-xl font-bold mb-2">
+                  {service.title}
+                </h2>
+                <p className="offer-desc text-xs sm:text-sm">
+                  {service.description}
+                </p>
               </div>
             ))}
           </div>

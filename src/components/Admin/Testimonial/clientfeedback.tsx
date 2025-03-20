@@ -1,13 +1,13 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "lightbox2/dist/css/lightbox.min.css";
-import DataTable from '@/matt/DataTable';
-import Button from '@/matt/Button';
-import SeeMoreText from '@/matt/SeeMoreText';
+import DataTable from "@/matt/DataTable";
+import Button from "@/matt/Button";
+import SeeMoreText from "@/matt/SeeMoreText";
 
 interface Testimonial {
   id: number;
@@ -28,18 +28,20 @@ const TestimonialTable = () => {
 
   const fetchTestimonials = async () => {
     try {
-      const res = await fetch('/api/Testimonial');
+      const res = await fetch("/api/Testimonial");
       if (!res.ok) throw new Error("Failed to fetch testimonials");
       const data = await res.json();
 
-      const updatedTestimonials = await Promise.all(data.map(async (testimonial: Testimonial) => {
-        if (testimonial.imageUrl) {
-          const imageRes = await fetch(testimonial.imageUrl);
-          const imageBlob = await imageRes.blob();
-          testimonial.imageUrl = URL.createObjectURL(imageBlob);
-        }
-        return testimonial;
-      }));
+      const updatedTestimonials = await Promise.all(
+        data.map(async (testimonial: Testimonial) => {
+          if (testimonial.imageUrl) {
+            const imageRes = await fetch(testimonial.imageUrl);
+            const imageBlob = await imageRes.blob();
+            testimonial.imageUrl = URL.createObjectURL(imageBlob);
+          }
+          return testimonial;
+        })
+      );
 
       setTestimonials(updatedTestimonials);
     } catch {
@@ -56,11 +58,11 @@ const TestimonialTable = () => {
     setIsSaving(true);
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
-    const method = isEditing ? 'PUT' : 'POST';
-    const id = isEditing ? formData.get('id') : null;
+    const method = isEditing ? "PUT" : "POST";
+    const id = isEditing ? formData.get("id") : null;
 
     try {
-      const res = await fetch(`/api/Testimonial${id ? `?id=${id}` : ''}`, {
+      const res = await fetch(`/api/Testimonial${id ? `?id=${id}` : ""}`, {
         method,
         body: formData,
       });
@@ -71,7 +73,11 @@ const TestimonialTable = () => {
       setIsEditing(false);
       setShowModal(false);
       form.reset();
-      toast.success(isEditing ? "Testimonial updated successfully!" : "Testimonial added successfully!");
+      toast.success(
+        isEditing
+          ? "Testimonial updated successfully!"
+          : "Testimonial added successfully!"
+      );
     } catch {
       toast.error("Error saving testimonial. Please try again later.");
     } finally {
@@ -87,7 +93,9 @@ const TestimonialTable = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`/api/Testimonial?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/Testimonial?id=${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to delete testimonial");
 
       fetchTestimonials();
@@ -108,12 +116,22 @@ const TestimonialTable = () => {
 
   const columns = [
     { key: "name", header: "Name", renderCell: (row: Testimonial) => row.name },
-    { key: "position", header: "Position", renderCell: (row: Testimonial) => row.position },
-    { key: "company", header: "Company", renderCell: (row: Testimonial) => row.company },
+    {
+      key: "position",
+      header: "Position",
+      renderCell: (row: Testimonial) => row.position,
+    },
+    {
+      key: "company",
+      header: "Company",
+      renderCell: (row: Testimonial) => row.company,
+    },
     {
       key: "feedback",
       header: "Feedback",
-      renderCell: (row: Testimonial) => <SeeMoreText text={row.feedback} maxLength={100} />,
+      renderCell: (row: Testimonial) => (
+        <SeeMoreText text={row.feedback} maxLength={100} />
+      ),
     },
     {
       key: "imageUrl",
@@ -153,33 +171,39 @@ const TestimonialTable = () => {
   return (
     <div className="flex flex-col items-center justify-center py-6 w-full">
       <ToastContainer autoClose={1500} />
-      <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800">Testimonials</h1>
+      <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800">
+        Testimonials
+      </h1>
       <div className="w-full max-w-5xl mx-auto sm:mx-4 md:mx-auto flex justify-end mb-6">
-
         <button
-          onClick={() => { setIsEditing(false); setShowModal(true); }}
+          onClick={() => {
+            setIsEditing(false);
+            setShowModal(true);
+          }}
           className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Add New Testimonial
         </button>
       </div>
 
-      <div className="w-full max-w-5xl mx-auto overflow-x-auto">
+      <div className="w-full mx-auto overflow-x-auto">
         <DataTable columns={columns} data={testimonials} />
       </div>
 
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
-            <h2 className="mb-4 text-lg font-bold text-gray-800">{isEditing ? 'Edit Testimonial' : 'Add Testimonial'}</h2>
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
+              {isEditing ? "Edit Testimonial" : "Add Testimonial"}
+            </h2>
             <form onSubmit={handleSubmit}>
-              <input type="hidden" name="id" value={formData?.id || ''} />
+              <input type="hidden" name="id" value={formData?.id || ""} />
 
               <input
                 type="text"
                 name="name"
                 placeholder="Name"
-                defaultValue={formData?.name || ''}
+                defaultValue={formData?.name || ""}
                 required
                 className="w-full mb-2 border rounded p-2"
               />
@@ -188,7 +212,7 @@ const TestimonialTable = () => {
                 type="text"
                 name="position"
                 placeholder="Position"
-                defaultValue={formData?.position || ''}
+                defaultValue={formData?.position || ""}
                 required
                 className="w-full mb-2 border rounded p-2"
               />
@@ -197,7 +221,7 @@ const TestimonialTable = () => {
                 type="text"
                 name="company"
                 placeholder="Company"
-                defaultValue={formData?.company || ''}
+                defaultValue={formData?.company || ""}
                 required
                 className="w-full mb-2 border rounded p-2"
               />
@@ -205,7 +229,7 @@ const TestimonialTable = () => {
               <textarea
                 name="feedback"
                 placeholder="Feedback"
-                defaultValue={formData?.feedback || ''}
+                defaultValue={formData?.feedback || ""}
                 required
                 className="w-full mb-2 border rounded p-2"
               />
@@ -231,8 +255,10 @@ const TestimonialTable = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center"
                   disabled={isSaving}
                 >
-                  {isSaving && <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>}
-                  {isEditing ? 'Update' : 'Add'} Testimonial
+                  {isSaving && (
+                    <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>
+                  )}
+                  {isEditing ? "Update" : "Add"} Testimonial
                 </button>
               </div>
             </form>
@@ -243,8 +269,19 @@ const TestimonialTable = () => {
       {modalImage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="relative">
-            <button onClick={closeModal} className="absolute top-0 right-1 p-3 text-white text-2xl">x</button>
-            <Image src={modalImage} alt="Large View" width={500} height={500} className="object-contain" />
+            <button
+              onClick={closeModal}
+              className="absolute top-0 right-1 p-3 text-white text-2xl"
+            >
+              x
+            </button>
+            <Image
+              src={modalImage}
+              alt="Large View"
+              width={500}
+              height={500}
+              className="object-contain"
+            />
           </div>
         </div>
       )}

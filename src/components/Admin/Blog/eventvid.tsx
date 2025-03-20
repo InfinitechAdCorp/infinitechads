@@ -1,26 +1,28 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "lightbox2/dist/css/lightbox.min.css";
-import DataTable from '@/matt/DataTable';
-import Button from '@/matt/Button';
+import DataTable from "@/matt/DataTable";
+import Button from "@/matt/Button";
 
 interface eventvid {
   id: number;
   videoUrl: string;
   title: string;
-  thumbnail: string
+  thumbnail: string;
 }
 
 const EventVid = () => {
   const [eventvids, setEventVid] = useState<eventvid[]>([]);
-  const [formData, setFormData] = useState<Partial<eventvid & { videoUrl: File | string; thumbnailUrl: File | string }>>({
-    videoUrl: '',
-    thumbnailUrl: '',
-    title: '',
+  const [formData, setFormData] = useState<
+    Partial<eventvid & { videoUrl: File | string; thumbnailUrl: File | string }>
+  >({
+    videoUrl: "",
+    thumbnailUrl: "",
+    title: "",
   });
   const [editMode, setEditMode] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,7 +32,7 @@ const EventVid = () => {
   useEffect(() => {
     const fetchEventVid = async () => {
       try {
-        const response = await fetch('/api/eventvid');
+        const response = await fetch("/api/eventvid");
         const data = await response.json();
         console.log("Fetched eventvids:", data);
         setEventVid(Array.isArray(data) ? data : []);
@@ -70,53 +72,57 @@ const EventVid = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    const method = editMode ? 'PATCH' : 'POST';
+    const method = editMode ? "PATCH" : "POST";
     const id = editMode ? formData.id : null;
 
     const formDataToSend = new FormData();
 
     if (formData.videoUrl) {
-      formDataToSend.append('videoUrl', formData.videoUrl);
+      formDataToSend.append("videoUrl", formData.videoUrl);
     }
 
     if (formData.thumbnailUrl) {
-      formDataToSend.append('thumbnailUrl', formData.thumbnailUrl);
+      formDataToSend.append("thumbnailUrl", formData.thumbnailUrl);
     }
 
-    formDataToSend.append('title', formData.title || '');
+    formDataToSend.append("title", formData.title || "");
 
     try {
-      const response = await fetch(`/api/eventvid${id ? `?id=${id}` : ''}`, {
+      const response = await fetch(`/api/eventvid${id ? `?id=${id}` : ""}`, {
         method,
         body: formDataToSend,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add/update the video testimonial.');
+        throw new Error("Failed to add/update the video testimonial.");
       }
 
       const newEventVid = await response.json();
 
       setEventVid((prev) =>
         editMode
-          ? prev.map((testimonial) => (testimonial.id === newEventVid.id ? newEventVid : testimonial))
+          ? prev.map((testimonial) =>
+              testimonial.id === newEventVid.id ? newEventVid : testimonial
+            )
           : [...prev, newEventVid]
       );
 
-      setFormData({ videoUrl: '', thumbnailUrl: '', title: '' });
+      setFormData({ videoUrl: "", thumbnailUrl: "", title: "" });
       setEditMode(false);
       setModalOpen(false);
 
-      toast.success(editMode ? 'Video clip updated successfully!' : 'Video clip added successfully!');
+      toast.success(
+        editMode
+          ? "Video clip updated successfully!"
+          : "Video clip added successfully!"
+      );
     } catch (error) {
-      console.error('Error submitting form:', error);
-      toast.error('Failed to add/update the video event.');
+      console.error("Error submitting form:", error);
+      toast.error("Failed to add/update the video event.");
     } finally {
       setIsSaving(false);
     }
   };
-
-
 
   const handleEdit = (eventvid: eventvid) => {
     setFormData(eventvid);
@@ -126,14 +132,14 @@ const EventVid = () => {
 
   const handleDelete = async (id: number) => {
     const response = await fetch(`/api/eventvid?id=${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
 
     if (response.ok) {
-      setEventVid((prev) => prev.filter(eventvid => eventvid.id !== id));
-      toast.success('Video clip deleted successfully!');
+      setEventVid((prev) => prev.filter((eventvid) => eventvid.id !== id));
+      toast.success("Video clip deleted successfully!");
     } else {
-      toast.error('Failed to delete the video clip.');
+      toast.error("Failed to delete the video clip.");
     }
   };
 
@@ -143,7 +149,12 @@ const EventVid = () => {
       key: "videoUrl",
       header: "Video",
       renderCell: (row: eventvid) => (
-        <a href={row.videoUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+        <a
+          href={row.videoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline"
+        >
           Watch Video
         </a>
       ),
@@ -183,34 +194,40 @@ const EventVid = () => {
     },
   ];
 
-
   return (
     <div className="flex flex-col items-center justify-center py-6 w-full">
-      <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800">Video Clips</h1>
+      <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800">
+        Video Clips
+      </h1>
       <div className="w-full max-w-5xl mx-auto sm:mx-4 md:mx-auto flex justify-end mb-6">
         <button
-          onClick={() => { setModalOpen(true); setEditMode(false); }}
+          onClick={() => {
+            setModalOpen(true);
+            setEditMode(false);
+          }}
           className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Add New Video Clips
         </button>
       </div>
 
-      <div className="w-full max-w-5xl mx-auto overflow-x-auto">
+      <div className="w-full mx-auto overflow-x-auto">
         <DataTable columns={columns} data={eventvids} />
       </div>
 
       {modalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
-            <h2 className="mb-4 text-lg font-bold text-gray-800">{editMode ? 'Edit' : 'Add'} Video Clips</h2>
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
+              {editMode ? "Edit" : "Add"} Video Clips
+            </h2>
             <form onSubmit={handleSubmit}>
               <label>Title</label>
               <input
                 type="text"
                 name="title"
                 placeholder="Enter title"
-                value={formData.title || ''}
+                value={formData.title || ""}
                 onChange={handleInputChange}
                 required
                 className="w-full mb-2 border rounded p-2"
@@ -238,8 +255,10 @@ const EventVid = () => {
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center"
                 disabled={isSaving}
               >
-                {isSaving && <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>}
-                {editMode ? 'Update' : 'Add'} Video Clips
+                {isSaving && (
+                  <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>
+                )}
+                {editMode ? "Update" : "Add"} Video Clips
               </button>
               <button
                 type="button"
@@ -256,8 +275,19 @@ const EventVid = () => {
       {modalImage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="relative">
-            <button onClick={closeModal} className="absolute top-0 right-1 p-3 text-white text-2xl">x</button>
-            <Image src={modalImage} alt="Large View" width={500} height={500} className="object-contain" />
+            <button
+              onClick={closeModal}
+              className="absolute top-0 right-1 p-3 text-white text-2xl"
+            >
+              x
+            </button>
+            <Image
+              src={modalImage}
+              alt="Large View"
+              width={500}
+              height={500}
+              className="object-contain"
+            />
           </div>
         </div>
       )}

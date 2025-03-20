@@ -33,16 +33,21 @@ export async function POST(request: NextRequest) {
       token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
+    // Log the blob URL for debugging
+    console.log("Image uploaded successfully: ", blob.url);
+
     // Save the service data with image URL to the database
     const newService = await prisma.service.create({
       data: { title, description, image: blob.url },
     });
 
     return NextResponse.json({ message: 'Service created successfully!', newService }, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("Error creating service:", error); // Log the actual error
     return NextResponse.json({ error: 'Failed to create service' }, { status: 500 });
   }
 }
+
 
 // UPDATE
 export async function PUT(request: NextRequest) {

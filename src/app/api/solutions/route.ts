@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   const name = data.get('name') as string;
   const link = data.get('link') as string;
   const imageFile = data.get('imageFile') as File | null;
-
+console.log(process.env.BLOB_READ_WRITE_TOKEN)
   if (!name || !link || !imageFile) {
     return NextResponse.json({ error: 'Name, link, and image are required' }, { status: 400 });
   }
@@ -39,9 +39,11 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ message: 'Solution created successfully!', newSolution }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: 'Failed to create solution' }, { status: 500 });
-  }
+  } catch (error) {
+  console.error('Error:', error);  // Log the error to the console
+  return NextResponse.json({ error: 'Failed to create solution' }, { status: 500 });
+}
+
 }
 
 // UPDATE A SOLUTION

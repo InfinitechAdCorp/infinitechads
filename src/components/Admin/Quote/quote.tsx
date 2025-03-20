@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import DataTable from '@/matt/DataTable';
-import Button from '@/matt/Button';
-import SeeMoreText from '@/matt/SeeMoreText';
+import { useEffect, useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import DataTable from "@/matt/DataTable";
+import Button from "@/matt/Button";
+import SeeMoreText from "@/matt/SeeMoreText";
 
 interface Plan {
   id: number;
@@ -23,10 +23,12 @@ const ManagePlans = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deletePlanId, setDeletePlanId] = useState<number | null>(null);
 
   const fetchPlans = async () => {
     try {
-      const res = await fetch('/api/quote');
+      const res = await fetch("/api/quote");
       if (!res.ok) throw new Error("Failed to fetch plans");
       const data = await res.json();
       setPlans(data);
@@ -44,19 +46,19 @@ const ManagePlans = () => {
     setIsSaving(true);
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
-    const method = isEditing ? 'PUT' : 'POST';
-    const id = isEditing ? formData.get('id') : null;
+    const method = isEditing ? "PUT" : "POST";
+    const id = isEditing ? formData.get("id") : null;
 
     try {
-      const res = await fetch(`/api/quote${id ? `?id=${id}` : ''}`, {
+      const res = await fetch(`/api/quote${id ? `?id=${id}` : ""}`, {
         method,
         body: JSON.stringify({
-          name: formData.get('name'),
-          serviceTitle: formData.get('serviceTitle'),
-          description: formData.get('description'),
-          price: parseFloat(formData.get('price') as string),
+          name: formData.get("name"),
+          serviceTitle: formData.get("serviceTitle"),
+          description: formData.get("description"),
+          price: parseFloat(formData.get("price") as string),
         }),
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
       });
 
       if (!res.ok) throw new Error("Failed to save plan");
@@ -65,7 +67,9 @@ const ManagePlans = () => {
       setIsEditing(false);
       setShowModal(false);
       form.reset();
-      toast.success(isEditing ? "Plan updated successfully!" : "Plan added successfully!");
+      toast.success(
+        isEditing ? "Plan updated successfully!" : "Plan added successfully!"
+      );
     } catch {
       toast.error("Error saving plan. Please try again later.");
     } finally {
@@ -79,38 +83,61 @@ const ManagePlans = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
+    setDeletePlanId(id);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDelete = async () => {
     try {
-      const res = await fetch(`/api/quote?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/quote?id=${deletePlanId}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to delete plan");
 
       fetchPlans();
+      setShowDeleteConfirmation(false);
       toast.success("Plan deleted successfully!");
     } catch {
       toast.error("Error deleting plan. Please try again later.");
     }
   };
 
+  const cancelDelete = () => {
+    setShowDeleteConfirmation(false);
+    setDeletePlanId(null);
+  };
+
   const columns = [
-    { key: 'name', header: 'Plan' },
-    { key: 'serviceTitle', header: 'Service Title' },
+    { key: "name", header: "Plan" },
+    { key: "serviceTitle", header: "Service Title" },
     {
-          key: "description",
-          header: "Description",
-          renderCell: (row: Plan) => <SeeMoreText text={row.description} maxLength={100} />,
-        },
-    {
-      key: 'price',
-      header: 'Price',
-      renderCell: (row: Plan) => row.price.toLocaleString('en-US', { style: 'currency', currency: 'PHP' }),
+      key: "description",
+      header: "Description",
+      renderCell: (row: Plan) => (
+        <SeeMoreText text={row.description} maxLength={100} />
+      ),
     },
     {
-      key: 'actions',
-      header: 'Actions',
+      key: "price",
+      header: "Price",
+      renderCell: (row: Plan) =>
+        row.price.toLocaleString("en-US", {
+          style: "currency",
+          currency: "PHP",
+        }),
+    },
+    {
+      key: "actions",
+      header: "Actions",
       renderCell: (row: Plan) => (
         <>
-          <Button onClick={() => handleEdit(row)} color="blue">Edit</Button>
-          <Button onClick={() => handleDelete(row.id)} color="red">Delete</Button>
+          <Button onClick={() => handleEdit(row)} color="blue">
+            Edit
+          </Button>
+          <Button onClick={() => handleDelete(row.id)} color="red">
+            Delete
+          </Button>
         </>
       ),
     },
@@ -120,32 +147,46 @@ const ManagePlans = () => {
     <div className="flex flex-col items-center justify-center py-6 w-full">
       <ToastContainer autoClose={1500} />
 
-      <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800"> Quotations</h1>
+      <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800">
+        Quotations
+      </h1>
 
       <div className="w-full max-w-5xl mx-auto flex justify-end mb-6">
         <button
-          onClick={() => { setIsEditing(false); setShowModal(true); }}
+          onClick={() => {
+            setIsEditing(false);
+            setShowModal(true);
+          }}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Add New Plan
         </button>
       </div>
 
-      <div className="w-full max-w-5xl mx-auto">
+      <div className="w-full mx-auto">
         <DataTable columns={columns} data={plans} />
       </div>
 
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
-            <h2 className="mb-4 text-lg font-bold text-gray-800">{isEditing ? 'Edit Plan' : 'Add Plan'}</h2>
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
+              {isEditing ? "Edit Plan" : "Add Plan"}
+            </h2>
             <form onSubmit={handleSubmit}>
-              <input type="hidden" name="id" value={formData?.id || ''} />
+              <input type="hidden" name="id" value={formData?.id || ""} />
 
-              <select name="name" defaultValue={formData?.name || ''} required className="w-full mb-2 border rounded p-2">
+              <select
+                name="name"
+                defaultValue={formData?.name || ""}
+                required
+                className="w-full mb-2 border rounded p-2"
+              >
                 <option value="">Select Plan Type</option>
                 {planTypes.map((planType) => (
-                  <option key={planType} value={planType}>{planType}</option>
+                  <option key={planType} value={planType}>
+                    {planType}
+                  </option>
                 ))}
               </select>
 
@@ -153,7 +194,7 @@ const ManagePlans = () => {
                 type="text"
                 name="serviceTitle"
                 placeholder="Service Title"
-                defaultValue={formData?.serviceTitle || ''}
+                defaultValue={formData?.serviceTitle || ""}
                 required
                 className="w-full mb-2 border rounded p-2"
               />
@@ -161,7 +202,7 @@ const ManagePlans = () => {
               <textarea
                 name="description"
                 placeholder="Description"
-                defaultValue={formData?.description || ''}
+                defaultValue={formData?.description || ""}
                 required
                 className="w-full mb-2 border rounded p-2"
               />
@@ -170,7 +211,7 @@ const ManagePlans = () => {
                 type="number"
                 name="price"
                 placeholder="Price"
-                defaultValue={formData?.price || ''}
+                defaultValue={formData?.price || ""}
                 required
                 className="w-full mb-2 border rounded p-2"
               />
@@ -181,8 +222,10 @@ const ManagePlans = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center"
                   disabled={isSaving}
                 >
-                  {isSaving && <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>}
-                  {isEditing ? 'Save Changes' : 'Add Plan'}
+                  {isSaving && (
+                    <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>
+                  )}
+                  {isEditing ? "Save Changes" : "Add Plan"}
                 </button>
                 <button
                   type="button"
@@ -193,6 +236,30 @@ const ManagePlans = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirmation && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
+              Are you sure you want to delete this plan?
+            </h2>
+            <div className="flex justify-between">
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
