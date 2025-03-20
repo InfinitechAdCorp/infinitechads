@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+model BlogPost {
+  id         Int      @id @default(autoincrement())
+  title      String
+  content    String
+  date       DateTime @default(now())
+  authorName String
+  image      String
+}
+
+model Service {
+  id          Int    @id @default(autoincrement())
+  image       String
+  title       String
+  description String
+}
+
+model Testimonial {
+  id        Int      @id @default(autoincrement())
+  name      String
+  position  String
+  company   String
+  feedback  String
+  imageUrl  String
+  createdAt DateTime @default(now())
+}
+
+model VideoTestimonial {
+  id         Int    @id @default(autoincrement())
+  videoUrl   String
+  thumbnail  String
+  clientName String
+}
+
+model EventData {
+  id         Int      @id @default(autoincrement())
+  title      String
+  content    String
+  date       DateTime @default(now())
+  authorName String
+  image      String
+}
+
+model Certificate {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SolutionData {
+  id       Int    @id @default(autoincrement())
+  name     String
+  imageUrl String
+  link     String
+}
+
+model Partner {
+  id       Int    @id @default(autoincrement())
+  imageUrl String
+}
+
+model TeamMember {
+  id               Int                     @id @default(autoincrement())
+  name             String
+  title            String
+  imageUrl         String
+  credentials      String
+  certificates     TeamMemberCertificate[]
+  teamMemberDetail TeamMemberDetail[]
+}
+
+model TeamMemberCertificate {
+  id           Int        @id @default(autoincrement())
+  imageUrl     String
+  teamMemberId Int
+  teamMember   TeamMember @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+}
+
+model TeamMemberDetail {
+  id              Int               @id @default(autoincrement())
+  officeAddress   String
+  mobileNumber    String
+  telephoneNumber String
+  websiteLink     String
+  teamMemberId    Int
+  email           String
+  teamMember      TeamMember        @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+  images          TeamMemberImage[]
+}
+
+model TeamMemberImage {
+  id           Int              @id @default(autoincrement())
+  imageUrl     String
+  teamMemberId Int
+  teamMember   TeamMemberDetail @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+}
+
+model Plan {
+  id           Int      @id @default(autoincrement())
+  name         PlanType
+  serviceTitle String
+  description  String
+  price        Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Hiring {
+  id       Int    @id @default(autoincrement())
+  position String
+  location String
+  jobType  String
+  link     String
+}
+
+model Admin {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+}
+
+model eventvid {
+  id        Int    @id @default(autoincrement())
+  videoUrl  String
+  title     String
+  thumbnail String
+}
+
+enum PlanType {
+  Basic
+  Standard
+  Advance
+  Premium
+  Vip
+  Addons
+}
