@@ -82,20 +82,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-
-
 export async function PATCH(request: NextRequest) {
   const { searchParams } = request.nextUrl;
-  const id = searchParams.get('id');
+  const id = searchParams.get("id");
 
   if (!id) {
-    return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    return NextResponse.json({ error: "ID is required" }, { status: 400 });
   }
 
   const data = await request.formData();
-  const videoFile = data.get('videoUrl') as File | undefined;
-  const thumbnailFile = data.get('thumbnailUrl') as File | undefined;
-  const title = data.get('title') as string | undefined;
+  const videoFile = data.get("videoUrl") as File | undefined;
+  const thumbnailFile = data.get("thumbnailUrl") as File | undefined;
+  const title = data.get("title") as string | undefined;
+  const blobToken = data.get("blobToken") as string; // ✅ Get the blobToken from formData
+
+  if (!blobToken) {
+    return NextResponse.json(
+      { error: "Blob token is required" },
+      { status: 400 }
+    );
+  }
 
   const updateData: Partial<eventvid> = {};
 
@@ -106,27 +112,38 @@ export async function PATCH(request: NextRequest) {
   try {
     // Check if videoFile is a valid File object
     if (videoFile && videoFile instanceof File) {
-      const videoBlob = await put(`videos/${videoFile.name}`, await videoFile.arrayBuffer(), {
-        access: 'public',
-        contentType: videoFile.type,
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-      });
+      const videoBlob = await put(
+        `videos/${videoFile.name}`,
+        await videoFile.arrayBuffer(),
+        {
+          access: "public",
+          contentType: videoFile.type,
+          token: blobToken, // ✅ Use the received token
+        }
+      );
       updateData.videoUrl = videoBlob.url;
     }
 
     // Check if thumbnailFile is a valid File object
     if (thumbnailFile && thumbnailFile instanceof File) {
-      const thumbnailBlob = await put(`thumbnails/${thumbnailFile.name}`, await thumbnailFile.arrayBuffer(), {
-        access: 'public',
-        contentType: thumbnailFile.type,
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-      });
+      const thumbnailBlob = await put(
+        `thumbnails/${thumbnailFile.name}`,
+        await thumbnailFile.arrayBuffer(),
+        {
+          access: "public",
+          contentType: thumbnailFile.type,
+          token: blobToken, // ✅ Use the received token
+        }
+      );
       updateData.thumbnail = thumbnailBlob.url;
     }
 
     // If no valid data to update, return error
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No valid data to update' }, { status: 400 });
+      return NextResponse.json(
+        { error: "No valid data to update" },
+        { status: 400 }
+      );
     }
 
     const updatedTestimonial: eventvid = await prisma.eventvid.update({
@@ -136,8 +153,11 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(updatedTestimonial, { status: 200 });
   } catch (error) {
-    console.error('Error updating testimonial:', error);
-    return NextResponse.json({ error: 'Failed to update video testimonial' }, { status: 500 });
+    console.error("Error updating testimonial:", error);
+    return NextResponse.json(
+      { error: "Failed to update video testimonial" },
+      { status: 500 }
+    );
   }
 }
 

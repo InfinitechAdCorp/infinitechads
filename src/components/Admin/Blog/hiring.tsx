@@ -21,6 +21,8 @@ const Hiring = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<number | null>(null);
 
   const fetchJobs = async () => {
     try {
@@ -73,15 +75,26 @@ const Hiring = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDeleteConfirmation = (id: number) => {
+    setJobToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!jobToDelete) return;
     try {
-      const res = await fetch(`/api/hiring?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/hiring?id=${jobToDelete}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Failed to delete job");
 
       fetchJobs();
       toast.success("Job deleted successfully!");
     } catch {
       toast.error("Error deleting job. Please try again later.");
+    } finally {
+      setShowDeleteModal(false);
+      setJobToDelete(null);
     }
   };
 
@@ -123,7 +136,7 @@ const Hiring = () => {
           <Button onClick={() => handleEdit(row)} color="blue">
             Edit
           </Button>
-          <Button onClick={() => handleDelete(row.id)} color="red">
+          <Button onClick={() => handleDeleteConfirmation(row.id)} color="red">
             Delete
           </Button>
         </div>
@@ -153,6 +166,7 @@ const Hiring = () => {
         <DataTable columns={columns} data={jobs} />
       </div>
 
+      {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
@@ -215,6 +229,35 @@ const Hiring = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
+              Confirm Deletion
+            </h2>
+            <p className="mb-4 text-gray-600">
+              Are you sure you want to delete this job? This action cannot be
+              undone.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

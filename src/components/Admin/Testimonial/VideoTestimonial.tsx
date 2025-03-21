@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import "react-toastify/dist/ReactToastify.css";
 import "lightbox2/dist/css/lightbox.min.css";
 import DataTable from "@/matt/DataTable";
 import Button from "@/matt/Button";
@@ -14,6 +13,7 @@ interface VideoTestimonial {
   videoUrl: string;
   thumbnail: string;
   clientName: string;
+  blobToken?: string;
 }
 
 const VideoTestimonials = () => {
@@ -33,8 +33,19 @@ const VideoTestimonials = () => {
   const [editMode, setEditMode] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
-
   const [isSaving, setIsSaving] = useState(false);
+  const [blobToken, setBlobToken] = useState<string | undefined>("");
+
+  // Confirmation Modal States
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
+  const [testimonialToDelete, setTestimonialToDelete] =
+    useState<VideoTestimonial | null>(null);
+
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
+    console.log("BLOB Token from useEffect:", token);
+    setBlobToken(token);
+  }, []);
 
   useEffect(() => {
     const fetchTestimonials = async () => {
@@ -73,6 +84,7 @@ const VideoTestimonials = () => {
     const id = editMode ? formData.id : null;
 
     const formDataToSend = new FormData();
+    formDataToSend.append("blobToken", blobToken || "");
 
     if (formData.videoUrl) {
       formDataToSend.append("videoUrl", formData.videoUrl);
@@ -109,7 +121,12 @@ const VideoTestimonials = () => {
           : [...prev, newTestimonial]
       );
 
-      setFormData({ videoUrl: "", thumbnailUrl: "", clientName: "" });
+      setFormData({
+        videoUrl: "",
+        thumbnailUrl: "",
+        clientName: "",
+        blobToken: "",
+      });
       setEditMode(false);
       setModalOpen(false);
 
@@ -119,41 +136,49 @@ const VideoTestimonials = () => {
           : "Video testimonial added successfully!"
       );
     } catch (error) {
-      console.error("Error submitting form:", error);
       toast.error("Failed to add/update the video testimonial.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleEdit = (testimonial: VideoTestimonial) => {
-    setFormData(testimonial);
-    setEditMode(true);
-    setModalOpen(true);
+  const handleDelete = (testimonial: VideoTestimonial) => {
+    setTestimonialToDelete(testimonial);
+    setConfirmDeleteModal(true);
   };
 
-  const handleDelete = async (id: number) => {
-    const response = await fetch(`/api/VideoTestimonial?id=${id}`, {
-      method: "DELETE",
-    });
+  const confirmDelete = async () => {
+    if (!testimonialToDelete) return;
 
-    if (response.ok) {
-      setTestimonials((prev) =>
-        prev.filter((testimonial) => testimonial.id !== id)
+    try {
+      const response = await fetch(
+        `/api/VideoTestimonial?id=${testimonialToDelete.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ blobToken: blobToken || "" }),
+        }
       );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete the video testimonial.");
+      }
+
+      setTestimonials((prev) =>
+        prev.filter((testimonial) => testimonial.id !== testimonialToDelete.id)
+      );
+      setConfirmDeleteModal(false);
       toast.success("Video testimonial deleted successfully!");
-    } else {
+    } catch (error) {
       toast.error("Failed to delete the video testimonial.");
     }
   };
 
-  const handleImageClick = (thumbnail: string) => {
-    setModalImage(thumbnail);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setModalImage(null);
+  const handleCancelDelete = () => {
+    setConfirmDeleteModal(false);
+    setTestimonialToDelete(null);
   };
 
   const columns = [
@@ -187,7 +212,7 @@ const VideoTestimonials = () => {
               alt={row.clientName}
               width={60}
               height={40}
-              onClick={() => handleImageClick(row.thumbnail)}
+              onClick={() => setModalImage(row.thumbnail)}
               className="cursor-pointer"
             />
           </div>
@@ -203,14 +228,18 @@ const VideoTestimonials = () => {
           <Button onClick={() => handleEdit(row)} color="blue">
             Edit
           </Button>
-          <Button onClick={() => handleDelete(row.id)} color="red">
+          <Button onClick={() => handleDelete(row)} color="red">
             Delete
           </Button>
         </div>
       ),
     },
   ];
-
+  const handleEdit = (testimonial: VideoTestimonial) => {
+    setFormData(testimonial);
+    setEditMode(true);
+    setModalOpen(true);
+  };
   return (
     <div className="flex flex-col items-center justify-center py-6 w-full">
       <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800">
@@ -289,11 +318,29 @@ const VideoTestimonials = () => {
         </div>
       )}
 
+      {confirmDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
+              Are you sure you want to delete this testimonial?
+            </h2>
+            <div className="flex space-x-2">
+              <Button onClick={confirmDelete} color="red">
+                Yes, Delete
+              </Button>
+              <Button onClick={handleCancelDelete} color="blue">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modalImage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="relative">
             <button
-              onClick={closeModal}
+              onClick={() => setModalImage(null)}
               className="absolute top-0 right-1 p-3 text-white text-2xl"
             >
               x

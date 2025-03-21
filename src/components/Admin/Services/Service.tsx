@@ -23,6 +23,15 @@ const ServiceTable = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [blobToken, setBlobToken] = useState<string | undefined>("");
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
+    console.log("BLOB Token from useEffect:", token);
+    setBlobToken(token);
+  }, []);
 
   const fetchServices = async () => {
     try {
@@ -50,33 +59,24 @@ const ServiceTable = () => {
   useEffect(() => {
     fetchServices();
   }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
-
-    // Convert formData to a plain object to easily log and inspect
-    const formObject = Object.fromEntries(formData.entries());
-
-    // Log the formData and the plain object
-    console.log("FormData entries:", formData);
-    console.log("Form Object:", formObject);
+    console.log("FormData entries:", Array.from(formData.entries()));
 
     const method = isEditing ? "PUT" : "POST";
     const id = isEditing ? formData.get("id") : null;
 
     try {
-      // Log the method and the final data being sent
-      console.log("Sending data:", {
-        method,
-        body: formObject, // This will be the data sent
-      });
-
       const res = await fetch(`/api/services${id ? `?id=${id}` : ""}`, {
         method,
-        body: JSON.stringify(formObject), // Send the plain object as JSON
-        headers: { "Content-Type": "application/json" }, // Set the content-type to JSON
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${blobToken}`,
+        },
       });
 
       if (!res.ok) throw new Error("Failed to save service");
@@ -97,22 +97,38 @@ const ServiceTable = () => {
     }
   };
 
-  const handleEdit = (service: Service) => {
-    setFormData(service);
-    setIsEditing(true);
-    setShowModal(true);
+  const confirmDelete = (id: number) => {
+    setDeleteId(id);
+    setShowDeleteModal(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
     try {
-      const res = await fetch(`/api/services?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/services?id=${deleteId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${blobToken}`,
+        },
+      });
+
       if (!res.ok) throw new Error("Failed to delete service");
 
       fetchServices();
       toast.success("Service deleted successfully!");
     } catch {
       toast.error("Error deleting service. Please try again later.");
+    } finally {
+      setShowDeleteModal(false);
+      setDeleteId(null);
     }
+  };
+
+  const handleEdit = (service: Service) => {
+    setFormData(service);
+    setIsEditing(true);
+    setShowModal(true);
   };
 
   const handleImageClick = (image: string) => {
@@ -162,7 +178,7 @@ const ServiceTable = () => {
           <Button onClick={() => handleEdit(row)} color="blue">
             Edit
           </Button>
-          <Button onClick={() => handleDelete(row.id)} color="red">
+          <Button onClick={() => confirmDelete(row.id)} color="red">
             Delete
           </Button>
         </>
@@ -173,7 +189,6 @@ const ServiceTable = () => {
   return (
     <div className="flex flex-col items-center justify-center py-6 w-full">
       <ToastContainer autoClose={1500} />
-
       <h1 className="mb-4 text-3xl font-serif font-semibold text-gray-800">
         Our Services
       </h1>
@@ -194,6 +209,7 @@ const ServiceTable = () => {
         <DataTable columns={columns} data={services} />
       </div>
 
+      {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
@@ -249,6 +265,35 @@ const ServiceTable = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
+              Confirm Deletion
+            </h2>
+            <p className="mb-4 text-gray-700">
+              Are you sure you want to delete this service? This action cannot
+              be undone.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 bg-gray-400 text-white rounded shadow hover:bg-gray-500 focus:outline-none"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none"
+              >
+                Confirm Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

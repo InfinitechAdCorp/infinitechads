@@ -31,6 +31,16 @@ const LatestBlog = () => {
   const tableRef = useRef<HTMLTableElement | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [blobToken, setBlobToken] = useState<string | undefined>("");
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
+
+    // Log inside useEffect
+    console.log("BLOB Token from useEffect:", token);
+
+    // Optional: Set it to state if needed
+    setBlobToken(token);
+  }, []);
   const fetchBlogPosts = async () => {
     try {
       const response = await fetch("/api/LatestBlog");
@@ -75,7 +85,6 @@ const LatestBlog = () => {
       setFormData((prev) => ({ ...prev, imageFile: file }));
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -87,18 +96,21 @@ const LatestBlog = () => {
     formDataToSend.append("content", formData.content || "");
     formDataToSend.append("authorName", formData.authorName || "");
     formDataToSend.append("date", formData.date || "");
+
     if (formData.imageFile) {
       formDataToSend.append("imageFile", formData.imageFile);
     }
 
+    // ✅ Append blobToken to formDataToSend if available
+    if (blobToken) {
+      formDataToSend.append("blobToken", blobToken);
+    }
+
     try {
-      const response = await fetch(
-        "/api/LatestBlog" + (id ? `?id=${id}` : ""),
-        {
-          method,
-          body: formDataToSend,
-        }
-      );
+      const response = await fetch(`/api/LatestBlog${id ? `?id=${id}` : ""}`, {
+        method,
+        body: formDataToSend,
+      });
 
       if (response.ok) {
         const newPost = await response.json();
@@ -119,6 +131,7 @@ const LatestBlog = () => {
         toast.error("Failed to add/update the blog post.");
       }
     } catch (error) {
+      console.error("Error while submitting:", error);
       toast.error("An error occurred while adding/updating the blog post.");
     } finally {
       setIsSaving(false);

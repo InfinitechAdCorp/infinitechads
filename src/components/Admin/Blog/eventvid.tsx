@@ -29,7 +29,15 @@ const EventVid = () => {
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [blobToken, setBlobToken] = useState<string | undefined>("");
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
 
+    // Log inside useEffect
+    console.log("BLOB Token from useEffect:", token);
+
+    // Optional: Set it to state if needed
+    setBlobToken(token);
+  }, []);
   useEffect(() => {
     const fetchEventVid = async () => {
       try {
@@ -45,15 +53,7 @@ const EventVid = () => {
 
     fetchEventVid();
   }, []);
-  useEffect(() => {
-    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
 
-    // Log inside useEffect
-    console.log("BLOB Token from useEffect:", token);
-
-    // Optional: Set it to state if needed
-    setBlobToken(token);
-  }, []);
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, files } = e.target;
     if (files) {

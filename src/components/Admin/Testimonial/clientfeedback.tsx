@@ -25,6 +25,15 @@ const TestimonialTable = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [blobToken, setBlobToken] = useState<string | undefined>("");
+  const [confirmationModal, setConfirmationModal] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
+    console.log("BLOB Token from useEffect:", token);
+    setBlobToken(token);
+  }, []);
 
   const fetchTestimonials = async () => {
     try {
@@ -61,6 +70,8 @@ const TestimonialTable = () => {
     const method = isEditing ? "PUT" : "POST";
     const id = isEditing ? formData.get("id") : null;
 
+    formData.append("blobToken", blobToken || "");
+
     try {
       const res = await fetch(`/api/Testimonial${id ? `?id=${id}` : ""}`, {
         method,
@@ -85,24 +96,40 @@ const TestimonialTable = () => {
     }
   };
 
-  const handleEdit = (testimonial: Testimonial) => {
-    setFormData(testimonial);
-    setIsEditing(true);
-    setShowModal(true);
+  const handleDelete = (id: number) => {
+    setDeleteId(id);
+    setConfirmationModal(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
+
+    const formData = new FormData();
+    formData.append("id", deleteId.toString());
+    formData.append("blobToken", blobToken || "");
+
     try {
-      const res = await fetch(`/api/Testimonial?id=${id}`, {
+      const res = await fetch(`/api/Testimonial`, {
         method: "DELETE",
+        body: formData,
       });
+
       if (!res.ok) throw new Error("Failed to delete testimonial");
 
       fetchTestimonials();
       toast.success("Testimonial deleted successfully!");
     } catch {
       toast.error("Error deleting testimonial. Please try again later.");
+    } finally {
+      setConfirmationModal(false);
+      setDeleteId(null);
     }
+  };
+
+  const handleEdit = (testimonial: Testimonial) => {
+    setFormData(testimonial);
+    setIsEditing(true);
+    setShowModal(true);
   };
 
   const handleImageClick = (image: string) => {
@@ -145,7 +172,7 @@ const TestimonialTable = () => {
               width={60}
               height={60}
               onClick={() => handleImageClick(row.imageUrl)}
-              className="rounded-full object-cover"
+              className="rounded-full object-cover cursor-pointer"
             />
           </div>
         ) : (
@@ -266,22 +293,27 @@ const TestimonialTable = () => {
         </div>
       )}
 
-      {modalImage && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="relative">
-            <button
-              onClick={closeModal}
-              className="absolute top-0 right-1 p-3 text-white text-2xl"
-            >
-              x
-            </button>
-            <Image
-              src={modalImage}
-              alt="Large View"
-              width={500}
-              height={500}
-              className="object-contain"
-            />
+      {confirmationModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-96">
+            <h3 className="text-lg font-bold mb-4">Confirm Deletion</h3>
+            <p className="mb-4">
+              Are you sure you want to delete this testimonial?
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setConfirmationModal(false)}
+                className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}

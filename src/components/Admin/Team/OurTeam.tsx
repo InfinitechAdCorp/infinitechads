@@ -36,7 +36,16 @@ const TeamMembers = () => {
   const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
   const [newCertificateFiles, setNewCertificateFiles] = useState<File[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [blobToken, setBlobToken] = useState<string | undefined>("");
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
 
+    // Log inside useEffect
+    console.log("BLOB Token from useEffect:", token);
+
+    // Optional: Set it to state if needed
+    setBlobToken(token);
+  }, []);
   useEffect(() => {
     const fetchTeamMembers = async () => {
       try {
@@ -110,16 +119,21 @@ const TeamMembers = () => {
       setFormData((prev) => ({ ...prev, imageFile: file }));
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     const method = editMode ? "PUT" : "POST";
     const url = editMode ? `/api/team/${formData.id}` : "/api/team";
+    console.log("Request Method:", method, url);
 
     if (!formData.id && editMode) {
       toast.error("ID is required for editing");
       return;
+    } else {
+      // Log the ID if in edit mode and method is PUT
+      if (editMode) {
+        console.log("Editing team member with ID:", formData.id);
+      }
     }
 
     const formDataToSend = new FormData();
@@ -130,27 +144,34 @@ const TeamMembers = () => {
       ? formData.credentials.join(",")
       : formData.credentials || "";
     formDataToSend.append("credentials", credentials);
+
+    // ✅ Add blobToken to formDataToSend
+    if (blobToken) {
+      formDataToSend.append("blobToken", blobToken);
+    }
+
     if (formData.imageFile) {
       formDataToSend.append("imageFile", formData.imageFile);
     }
 
-    try {
-      console.log("Submitting form with data:", formDataToSend);
+    // Log the data before submitting
+    console.log("Form Data to Send:");
+    for (const pair of formDataToSend.entries()) {
+      console.log(`${pair[0]}:`, pair[1]);
+    }
 
+    try {
       const response = await fetch(url, {
         method,
         body: formDataToSend,
       });
-      console.log(formDataToSend);
 
-      console.log("Response from server:", response);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Error: ${errorText}`);
       }
 
       const newMember = await response.json();
-      console.log("New member data:", newMember);
 
       setTeamMembers((prev) =>
         editMode
@@ -176,11 +197,38 @@ const TeamMembers = () => {
     }
   };
 
-  const handleEdit = (member: TeamMember) => {
-    setFormData(member);
-    setEditMode(true);
-    setModalOpen(true);
+  const handleAddCertificates = async (teamMemberId: number, files: File[]) => {
+    try {
+      const formData = new FormData();
+      formData.append("id", teamMemberId.toString());
+
+      // ✅ Add blobToken when adding certificates
+      if (blobToken) {
+        formData.append("blobToken", blobToken);
+      }
+
+      files.forEach((file) => {
+        formData.append("certificateFiles", file);
+      });
+
+      const response = await fetch(`/api/team?id=${teamMemberId}`, {
+        method: "PUT",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add certificates");
+      }
+
+      toast.success("Certificates added successfully!");
+      setCertificateModalOpen(false);
+    } catch (error) {
+      console.error("Failed to add certificates:", error);
+      toast.error("Failed to add certificates. Please try again.");
+    }
   };
+
+  // ✅ Manage blobToken state and fetch it from the environment
 
   const handleDelete = async (id: number) => {
     const response = await fetch(`/api/team?id=${id}`, {
@@ -234,32 +282,6 @@ const TeamMembers = () => {
     }
   };
 
-  const handleAddCertificates = async (teamMemberId: number, files: File[]) => {
-    try {
-      const formData = new FormData();
-      formData.append("id", teamMemberId.toString());
-
-      files.forEach((file) => {
-        formData.append("certificateFiles", file);
-      });
-
-      const response = await fetch(`/api/team?id=${teamMemberId}`, {
-        method: "PUT",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add certificates");
-      }
-
-      toast.success("Certificates added successfully!");
-      setCertificateModalOpen(false);
-    } catch (error) {
-      console.error("Failed to add certificates:", error);
-      toast.error("Failed to add certificates. Please try again.");
-    }
-  };
-
   const closeCertificateModal = () => {
     setCertificateModalOpen(false);
     setNewCertificateFiles([]);
@@ -270,6 +292,13 @@ const TeamMembers = () => {
       require("lightbox2");
     }
   }, []);
+
+  const handleEdit = (member: TeamMember) => {
+    console.log("Editing member:", member);
+    setFormData(member);
+    setEditMode(true);
+    setModalOpen(true);
+  };
 
   const columns = [
     { key: "name", header: "Name" },

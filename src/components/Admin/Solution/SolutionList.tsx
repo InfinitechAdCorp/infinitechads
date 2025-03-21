@@ -22,6 +22,19 @@ const Solution = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [blobToken, setBlobToken] = useState<string | undefined>("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
+
+    // Log inside useEffect
+    console.log("BLOB Token from useEffect:", token);
+
+    // Optional: Set it to state if needed
+    setBlobToken(token);
+  }, []);
 
   const fetchSolutions = async () => {
     try {
@@ -58,6 +71,11 @@ const Solution = () => {
     const method = isEditing ? "PUT" : "POST";
     const id = isEditing ? formData.get("id") : null;
 
+    // Add blobToken to formData
+    if (blobToken) {
+      formData.append("blobToken", blobToken);
+    }
+
     try {
       const res = await fetch(`/api/solutions${id ? `?id=${id}` : ""}`, {
         method,
@@ -82,15 +100,13 @@ const Solution = () => {
     }
   };
 
-  const handleEdit = (solution: Solution) => {
-    setFormData(solution);
-    setIsEditing(true);
-    setShowModal(true);
-  };
-
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`/api/solutions?id=${id}`, { method: "DELETE" });
+      const res = await fetch(
+        `/api/solutions?id=${id}${blobToken ? `&blobToken=${blobToken}` : ""}`,
+        { method: "DELETE" }
+      );
+
       if (!res.ok) throw new Error("Failed to delete solution");
 
       fetchSolutions();
@@ -98,6 +114,13 @@ const Solution = () => {
     } catch {
       toast.error("Error deleting solution. Please try again later.");
     }
+    setShowDeleteModal(false);
+  };
+
+  const handleEdit = (solution: Solution) => {
+    setFormData(solution);
+    setIsEditing(true);
+    setShowModal(true);
   };
 
   const handleImageClick = (image: string) => {
@@ -107,6 +130,11 @@ const Solution = () => {
   const closeModal = () => {
     setShowModal(false);
     setModalImage(null);
+  };
+
+  const confirmDelete = (id: number) => {
+    setDeleteId(id);
+    setShowDeleteModal(true);
   };
 
   useEffect(() => {
@@ -151,7 +179,7 @@ const Solution = () => {
           <Button onClick={() => handleEdit(row)} color="blue">
             Edit
           </Button>
-          <Button onClick={() => handleDelete(row.id)} color="red">
+          <Button onClick={() => confirmDelete(row.id)} color="red">
             Delete
           </Button>
         </>
@@ -238,6 +266,34 @@ const Solution = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
+            <h2 className="mb-4 text-lg font-bold text-gray-800">
+              Confirm Delete
+            </h2>
+            <p className="mb-6 text-sm text-gray-600">
+              Are you sure you want to delete this solution? This action cannot
+              be undone.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteId!)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+              >
+                Confirm Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

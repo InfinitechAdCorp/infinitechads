@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { AiFillCloseCircle } from "react-icons/ai";
 
 type Certificate = {
@@ -17,15 +17,29 @@ const AdminCertificates = () => {
   const [file, setFile] = useState<File | null>(null);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [blobToken, setBlobToken] = useState<string | undefined>("");
+  const [deleteModal, setDeleteModal] = useState<{
+    show: boolean;
+    id: string | number | null;
+  }>({ show: false, id: null });
 
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
+
+    // Log inside useEffect
+    console.log("BLOB Token from useEffect:", token);
+
+    // Optional: Set it to state if needed
+    setBlobToken(token);
+  }, []);
   const fetchCertificates = async () => {
     try {
-      const res = await fetch('/api/certificatess');
+      const res = await fetch("/api/certificatess");
       if (!res.ok) throw new Error();
       const data = await res.json();
       setCertificates(data);
     } catch {
-      toast.error('Error fetching certificates.');
+      toast.error("Error fetching certificates.");
     }
   };
 
@@ -36,35 +50,67 @@ const AdminCertificates = () => {
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSaving(true);
-    if (!file) return toast.error('Please select a file.');
+
+    if (!file) return toast.error("Please select a file.");
+
     const formData = new FormData();
-    formData.append('imageFile', file);
+    formData.append("imageFile", file);
+
+    // ✅ Append blobToken to formData
+    if (blobToken) {
+      formData.append("blobToken", blobToken);
+    } else {
+      console.error("❌ Blob token is missing!");
+      toast.error("Error: Blob token is missing.");
+      setIsSaving(false);
+      return;
+    }
 
     try {
-      const res = await fetch('/api/certificatess', {
-        method: 'POST',
+      const res = await fetch("/api/certificatess", {
+        method: "POST",
         body: formData,
       });
 
       if (!res.ok) throw new Error();
+
       fetchCertificates();
       setShowModal(false);
-      toast.success('Certificate added successfully!');
+      toast.success("Certificate added successfully!");
     } catch {
-      toast.error('Error adding certificate.');
+      toast.error("Error adding certificate.");
     } finally {
       setIsSaving(false);
     }
   };
+  const openDeleteModal = (id: string | number) => {
+    setDeleteModal({ show: true, id });
+  };
 
-  const handleDelete = async (id: string | number) => {
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.id) return;
+
+    if (!blobToken) {
+      toast.error("Error: Blob token is missing.");
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/certificatess?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(
+        `/api/certificatess?id=${deleteModal.id}&blobToken=${encodeURIComponent(
+          blobToken
+        )}`,
+        { method: "DELETE" }
+      );
+
       if (!res.ok) throw new Error();
+
       fetchCertificates();
-      toast.success('Certificate deleted successfully!');
+      toast.success("Certificate deleted successfully!");
     } catch {
-      toast.error('Error deleting certificate.');
+      toast.error("Error deleting certificate.");
+    } finally {
+      setDeleteModal({ show: false, id: null });
     }
   };
 
@@ -76,7 +122,9 @@ const AdminCertificates = () => {
   return (
     <div className="flex flex-col items-center py-6 w-full">
       <ToastContainer autoClose={1500} />
-      <h1 className="mb-4 text-2xl font-serif font-semibold text-gray-800">Certificate Management</h1>
+      <h1 className="mb-4 text-2xl font-serif font-semibold text-gray-800">
+        Certificate Management
+      </h1>
 
       <div className="w-full max-w-5xl mx-auto sm:mx-4 md:mx-auto flex justify-end mb-6">
         <button
@@ -89,7 +137,10 @@ const AdminCertificates = () => {
 
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full max-w-6xl mx-auto">
         {certificates.map((cert) => (
-          <div key={cert.id} className="relative border p-2 shadow-lg rounded-md">
+          <div
+            key={cert.id}
+            className="relative border p-2 shadow-lg rounded-md"
+          >
             <Image
               src={cert.imageUrl}
               alt={`Certificate ${cert.id}`}
@@ -99,7 +150,7 @@ const AdminCertificates = () => {
               onClick={() => setModalImage(cert.imageUrl)}
             />
             <button
-              onClick={() => handleDelete(cert.id)}
+              onClick={() => openDeleteModal(cert.id)}
               className="absolute top-2 right-2 flex items-center px-3 py-1 text-sm font-semibold bg-red-600 text-white rounded hover:bg-red-700 shadow-md"
             >
               Delete
@@ -132,12 +183,36 @@ const AdminCertificates = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center"
                   disabled={isSaving}
                 >
-                  {isSaving && <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>}
-
+                  {isSaving && (
+                    <span className="animate-spin h-4 w-4 border-t-2 border-white border-solid rounded-full mr-2"></span>
+                  )}
                   Add Certificate
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {deleteModal.show && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md">
+            <h2 className="mb-4 text-lg font-bold text-center">
+              Are you sure you want to delete this certificate?
+            </h2>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setDeleteModal({ show: false, id: null })}
+                className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

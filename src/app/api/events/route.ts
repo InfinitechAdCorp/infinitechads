@@ -28,16 +28,20 @@ export async function POST(request: NextRequest) {
   const authorName = data.get('authorName') as string;
   const date = data.get('date') as string;
   const imageFile = data.get('imageFile') as File | null;
+  const blobToken = data.get('blobToken') as string | undefined;
 
   if (!title || !content || !authorName || !date || !(imageFile instanceof File)) {
-    return NextResponse.json({ error: 'Title, content, author Name, date, and image are required' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Title, content, authorName, date, and image are required' },
+      { status: 400 }
+    );
   }
 
   try {
     const blob = await put(`uploads/${imageFile.name}`, await imageFile.arrayBuffer(), {
       access: 'public',
       contentType: imageFile.type,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+      token: blobToken || process.env.BLOB_READ_WRITE_TOKEN, // ✅ Use blobToken if provided
     });
 
     const imageUrl = blob.url;
@@ -68,6 +72,7 @@ export async function PUT(request: NextRequest) {
   const authorName = data.get('authorName') as string | undefined;
   const date = data.get('date') as string | undefined;
   const imageFile = data.get('imageFile') as File | null;
+  const blobToken = data.get('blobToken') as string | undefined; // ✅ Get blobToken for PUT
 
   const updateData: Partial<Event> = {};
   if (title) updateData.title = title;
@@ -80,7 +85,7 @@ export async function PUT(request: NextRequest) {
       const blob = await put(`uploads/${imageFile.name}`, await imageFile.arrayBuffer(), {
         access: 'public',
         contentType: imageFile.type,
-        token: process.env.BLOB_READ_WRITE_TOKEN,
+        token: blobToken || process.env.BLOB_READ_WRITE_TOKEN, // ✅ Use blobToken if provided
       });
 
       updateData.image = blob.url;
@@ -91,12 +96,16 @@ export async function PUT(request: NextRequest) {
       data: updateData,
     });
 
-    return NextResponse.json({ message: 'Event updated successfully!', updatedEvent }, { status: 200 });
+    return NextResponse.json(
+      { message: 'Event updated successfully!', updatedEvent },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Failed to update event:', error);
     return NextResponse.json({ error: 'Failed to update event' }, { status: 500 });
   }
 }
+
 
 // DELETE AN EVENT
 export async function DELETE(request: NextRequest) {

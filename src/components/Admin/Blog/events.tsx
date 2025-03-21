@@ -25,7 +25,16 @@ const LatestEvents = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [blobToken, setBlobToken] = useState<string | undefined>("");
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
 
+    // Log inside useEffect
+    console.log("BLOB Token from useEffect:", token);
+
+    // Optional: Set it to state if needed
+    setBlobToken(token);
+  }, []);
   const fetchEvents = async () => {
     try {
       const res = await fetch("/api/events");
@@ -52,7 +61,6 @@ const LatestEvents = () => {
   useEffect(() => {
     fetchEvents();
   }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -60,6 +68,11 @@ const LatestEvents = () => {
     const formData = new FormData(form);
     const method = isEditing ? "PUT" : "POST";
     const id = isEditing ? formData.get("id") : null;
+
+    // Add blobToken to formData
+    if (blobToken) {
+      formData.append("blobToken", blobToken);
+    }
 
     try {
       const res = await fetch(`/api/events${id ? `?id=${id}` : ""}`, {
