@@ -21,40 +21,68 @@ export async function GET() {
   }
 }
 
-
 export async function POST(request: NextRequest) {
   const data = await request.formData();
-  const videoFile = data.get('videoUrl') as File;
-  const thumbnailFile = data.get('thumbnailUrl') as File;
-  const title = data.get('title') as string;
 
-  if (!videoFile || !thumbnailFile || !title) {
-    return NextResponse.json({ error: 'Video, thumbnail, and client name are required' }, { status: 400 });
+  const videoFile = data.get("videoUrl") as File;
+  const thumbnailFile = data.get("thumbnailUrl") as File;
+  const title = data.get("title") as string;
+  const blobToken = data.get("blobToken") as string; // ✅ Get the blobToken from formData
+
+  console.log("Received videoFile:", videoFile);
+  console.log("Received thumbnailFile:", thumbnailFile);
+  console.log("Received title:", title);
+  console.log("Received blobToken:", blobToken); // ✅ Log the received blobToken
+
+  if (!videoFile || !thumbnailFile || !title || !blobToken) {
+    return NextResponse.json(
+      { error: "Video, thumbnail, title, and blobToken are required" },
+      { status: 400 }
+    );
   }
 
   try {
-    const videoBlob = await put(`videos/${videoFile.name}`, await videoFile.arrayBuffer(), {
-      access: 'public',
-      contentType: videoFile.type,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    });
+    const videoBlob = await put(
+      `videos/${videoFile.name}`,
+      await videoFile.arrayBuffer(),
+      {
+        access: "public",
+        contentType: videoFile.type,
+        token: blobToken, // ✅ Use the received token instead of process.env
+      }
+    );
 
-    const thumbnailBlob = await put(`thumbnails/${thumbnailFile.name}`, await thumbnailFile.arrayBuffer(), {
-      access: 'public',
-      contentType: thumbnailFile.type,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    });
+    console.log("Uploaded video URL:", videoBlob.url);
+
+    const thumbnailBlob = await put(
+      `thumbnails/${thumbnailFile.name}`,
+      await thumbnailFile.arrayBuffer(),
+      {
+        access: "public",
+        contentType: thumbnailFile.type,
+        token: blobToken, // ✅ Use the received token
+      }
+    );
+
+    console.log("Uploaded thumbnail URL:", thumbnailBlob.url);
 
     const newEventVid: eventvid = await prisma.eventvid.create({
       data: { videoUrl: videoBlob.url, thumbnail: thumbnailBlob.url, title },
     });
 
+    console.log("New video event created:", newEventVid);
+
     return NextResponse.json(newEventVid, { status: 201 });
   } catch (error) {
-    console.error('Error creating testimonial:', error);
-    return NextResponse.json({ error: 'Failed to create video testimonial' }, { status: 500 });
+    console.error("Error creating video event:", error);
+    return NextResponse.json(
+      { error: "Failed to create video testimonial" },
+      { status: 500 }
+    );
   }
 }
+
+
 
 export async function PATCH(request: NextRequest) {
   const { searchParams } = request.nextUrl;

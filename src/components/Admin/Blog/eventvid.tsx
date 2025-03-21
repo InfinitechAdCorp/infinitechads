@@ -28,6 +28,7 @@ const EventVid = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [blobToken, setBlobToken] = useState<string | undefined>("");
 
   useEffect(() => {
     const fetchEventVid = async () => {
@@ -44,7 +45,15 @@ const EventVid = () => {
 
     fetchEventVid();
   }, []);
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
 
+    // Log inside useEffect
+    console.log("BLOB Token from useEffect:", token);
+
+    // Optional: Set it to state if needed
+    setBlobToken(token);
+  }, []);
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, files } = e.target;
     if (files) {
@@ -68,10 +77,11 @@ const EventVid = () => {
     setModalOpen(false);
     setModalImage(null);
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    console.log("Blob Token:", blobToken);
+
     const method = editMode ? "PATCH" : "POST";
     const id = editMode ? formData.id : null;
 
@@ -86,6 +96,12 @@ const EventVid = () => {
     }
 
     formDataToSend.append("title", formData.title || "");
+    formDataToSend.append("blobToken", blobToken || ""); // ✅ Pass the blobToken
+
+    // Log form data before sending
+    for (const [key, value] of formDataToSend.entries()) {
+      console.log(`${key}:`, value);
+    }
 
     try {
       const response = await fetch(`/api/eventvid${id ? `?id=${id}` : ""}`, {
